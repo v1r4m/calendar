@@ -12,6 +12,11 @@ from sources.event import Event
 API = "https://api.notion.com/v1"
 VERSION = "2022-06-28"
 
+# 멀티데이 일정은 "시작일"이 보는 달 범위보다 앞설 수 있다.
+# Notion 필터는 시작일 기준이라, 시작일이 그만큼 과거여도 걸치는 일정을 놓치지 않도록
+# 조회 하한을 이만큼 앞당겨 넉넉히 가져온다 (그리드엔 보이는 날짜만 렌더됨).
+LOOKBACK_DAYS = 92
+
 # Notion 속성 색상 이름 → hex
 _NOTION_COLORS = {
     "default": "#787774",
@@ -90,10 +95,11 @@ def fetch(time_min: datetime, time_max: datetime) -> list[Event]:
         if not date_prop:
             continue
 
+        lo = (time_min - timedelta(days=LOOKBACK_DAYS)).date().isoformat()
         payload = {
             "filter": {
                 "and": [
-                    {"property": date_prop, "date": {"on_or_after": time_min.date().isoformat()}},
+                    {"property": date_prop, "date": {"on_or_after": lo}},
                     {"property": date_prop, "date": {"before": time_max.date().isoformat()}},
                 ]
             },
@@ -123,6 +129,10 @@ def fetch(time_min: datetime, time_max: datetime) -> list[Event]:
                 start, all_day = _parse_dt(date_val["start"], tz)
                 if date_val.get("end"):
                     end, _ = _parse_dt(date_val["end"], tz, end=True)
+                    # Notion 종일 범위의 end는 "마지막 날"(포함). Google처럼 배타적(다음날 0시)
+                    # 으로 맞춰야 calendar_grid의 마지막날 보정이 옳게 동작한다.
+                    if all_day:
+                        end = end + timedelta(days=1)
                 elif all_day:
                     end = start + timedelta(days=1)
                 else:

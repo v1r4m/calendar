@@ -9,7 +9,7 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 [ -f .env ] || { echo "✗ .env 없음 — 'cp .env.production.example .env' 후 값 채우기" >&2; exit 1; }
 [ -f credentials.json ] || { echo "✗ credentials.json 없음 — 로컬에서 복사하세요" >&2; exit 1; }
 [ -f token.json ] || { echo "✗ token.json 없음 — 로컬에서 OAuth 로그인 후 생성된 token.json 을 복사하세요" >&2; exit 1; }
-# 큐레이션 파일 없으면 빈 객체로 초기화 (바인드마운트 대상이라 파일이 먼저 있어야 함)
+# 바인드마운트 대상은 파일이 먼저 있어야 함 (없으면 도커가 디렉터리를 만들어버림)
 [ -f categories.json ] || { echo "{}" > categories.json; echo "  ↳ categories.json 생성"; }
 
 echo "▶ 코드 가져오기"
