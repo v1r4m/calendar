@@ -53,9 +53,18 @@
     {% for week in grid %}
     <div class="week">
       {% for cell in week %}
-      <div class="cell {% if not cell.in_month %}muted{% endif %} {% if cell.is_today %}today{% endif %}">
+      <div class="cell {% if not cell.in_month %}muted{% endif %} {% if cell.is_today %}today{% endif %}"
+           data-label="{{ cell.date.month }}월 {{ cell.date.day }}일 ({{ ['월','화','수','목','금','토','일'][cell.date.weekday()] }})"
+           data-count="{{ cell.events|length }}">
         <div class="daynum {% if cell.is_today %}today-num{% endif %}">
           {% if cell.date.day == 1 %}{{ cell.date.month }}월 {% endif %}{{ cell.date.day }}
+        </div>
+        {# 모바일 전용: 칸 안에 들어가는 작은 일정 칩 #}
+        <div class="cell-chips">
+          {% for ev in cell.events[:6] %}
+          <span class="chip-ev" style="--c: {{ ev.color }}">{{ ev.title }}</span>
+          {% endfor %}
+          {% if cell.events|length > 6 %}<span class="chip-more">+{{ cell.events|length - 6 }}</span>{% endif %}
         </div>
         <div class="events">
           {% for ev in cell.events %}
@@ -87,37 +96,71 @@
     {% endfor %}
   </div>
 
-  {% if is_admin %}
+  <!-- 모바일 날짜 상세 팝업 (바텀시트) -->
+  <div id="daymodal" class="modal" aria-hidden="true">
+    <div class="sheet">
+      <div class="sheet-head">
+        <span class="modal-title"></span>
+        <button class="modal-close" aria-label="닫기">✕</button>
+      </div>
+      <div class="modal-events"></div>
+    </div>
+  </div>
+
   <script>
     var ORDER = ["private", "busy", "public"];
     var EMOJI = {{ cat_emoji | tojson }};
     var LABELS = {{ cat_labels | tojson }};
 
-    document.querySelectorAll(".cat-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var cur = btn.dataset.cat;
-        var next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
-        var body = new URLSearchParams({ key: btn.dataset.key, category: next });
-        btn.disabled = true;
-        fetch("/admin/category", { method: "POST", body: body })
-          .then(function (r) { if (!r.ok) throw 0; return r.json(); })
-          .then(function () {
-            // 같은 key를 가진 모든 버튼/행을 즉시 갱신 (멀티데이 대비)
-            document.querySelectorAll('.cat-btn[data-key="' + CSS.escape(btn.dataset.key) + '"]')
-              .forEach(function (b) {
-                b.dataset.cat = next;
-                b.textContent = EMOJI[next];
-                b.title = LABELS[next] + " — 클릭하면 다음 카테고리로";
-                var row = b.closest(".event-row");
-                row.classList.remove("cat-private", "cat-busy", "cat-public");
-                row.classList.add("cat-" + next);
-                b.disabled = false;
-              });
-          })
-          .catch(function () { btn.disabled = false; alert("변경 실패"); });
+    // ── 카테고리 버튼: 이벤트 위임 (그리드 원본 + 팝업 클론 모두 동작) ──
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest(".cat-btn");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var cur = btn.dataset.cat;
+      var next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+      var body = new URLSearchParams({ key: btn.dataset.key, category: next });
+      fetch("/admin/category", { method: "POST", body: body })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function () {
+          document.querySelectorAll('.cat-btn[data-key="' + CSS.escape(btn.dataset.key) + '"]')
+            .forEach(function (b) {
+              b.dataset.cat = next;
+              b.textContent = EMOJI[next];
+              b.title = LABELS[next] + " — 클릭하면 다음 카테고리로";
+              var row = b.closest(".event-row");
+              row.classList.remove("cat-private", "cat-busy", "cat-public");
+              row.classList.add("cat-" + next);
+            });
+        })
+        .catch(function () { alert("변경 실패"); });
+    });
+
+    // ── 모바일: 날짜 탭 → 상세 팝업 ──
+    var modal = document.getElementById("daymodal");
+    var modalEvents = modal.querySelector(".modal-events");
+    var modalTitle = modal.querySelector(".modal-title");
+
+    function openDay(cell) {
+      var evs = cell.querySelector(".events");
+      modalTitle.textContent = cell.dataset.label;
+      modalEvents.innerHTML = (evs && evs.children.length)
+        ? evs.innerHTML
+        : '<div class="modal-empty">일정이 없습니다</div>';
+      modal.classList.add("show");
+    }
+    function closeModal() { modal.classList.remove("show"); }
+
+    document.querySelectorAll(".cell").forEach(function (cell) {
+      cell.addEventListener("click", function (e) {
+        if (!window.matchMedia("(max-width: 640px)").matches) return; // 모바일에서만
+        if (e.target.closest("a, .cat-btn")) return;                   // 링크/버튼 직접 탭은 통과
+        openDay(cell);
       });
     });
+    modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
+    modal.querySelector(".modal-close").addEventListener("click", closeModal);
   </script>
-  {% endif %}
 </body>
 </html>

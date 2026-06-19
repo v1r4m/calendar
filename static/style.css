@@ -143,8 +143,73 @@ body { display: flex; flex-direction: column; }
 .event .bar { width: 3px; height: 12px; border-radius: 2px; flex: 0 0 auto; }
 .event.all-day:hover { background: rgba(0,0,0,.05); }
 
+/* 모바일 칸 안 일정 칩 — 기본은 숨김, 좁은 화면에서만 노출 */
+.cell-chips { display: none; flex-direction: column; gap: 2px; width: 100%; padding-top: 2px; }
+.chip-ev {
+  font-size: 10px; line-height: 1.3; color: var(--text);
+  padding: 1px 3px 1px 5px; border-radius: 3px;
+  background: #f3f3f2; box-shadow: inset 2px 0 0 var(--c);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chip-more { font-size: 9px; color: var(--muted); padding-left: 4px; line-height: 1.2; }
+
+/* ── 날짜 상세 팝업 (바텀시트) — 기본 숨김 ── */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.38); z-index: 50; display: none; }
+.modal.show { display: block; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #fff; border-radius: 16px 16px 0 0;
+  max-height: 80vh; overflow-y: auto; padding: 0 16px 24px;
+  box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+  animation: sheet-up .18s ease-out;
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-head {
+  position: sticky; top: 0; background: #fff; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px;
+}
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close { border: none; background: transparent; font-size: 18px; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+.modal-empty { color: var(--muted); padding: 18px 4px; font-size: 14px; }
+.modal-events .event-row { margin: 0; }
+.modal-events .event {
+  font-size: 15px; padding: 11px 10px; white-space: normal;
+  border-bottom: 1px solid var(--line); border-radius: 0;
+}
+.modal-events .event-row:last-child .event { border-bottom: none; }
+.modal-events .event .etitle { overflow: visible; white-space: normal; }
+.modal-events .event .etime { display: inline; margin-right: 6px; color: var(--text); font-weight: 600; }
+.modal-events .event .bar { height: 16px; }
+.modal-events .event .dot { width: 10px; height: 10px; }
+.modal-events .cat-btn { font-size: 20px; padding: 8px; }
+
 @media (max-width: 720px) {
   .nav h1 { font-size: 16px; }
   .event .etime { display: none; }
   .week { min-height: 70px; }
+}
+
+/* ── 모바일: 위는 작은 점 달력, 아래는 선택일 일정 리스트 ── */
+@media (max-width: 640px) {
+  body { height: auto; min-height: 100%; }
+  .topbar { padding: 10px 12px; position: sticky; top: 0; background: #fff; z-index: 3; }
+  .nav { gap: 10px; }
+  .sources { gap: 4px; }
+  .chip { font-size: 10px; padding: 2px 7px; }
+  .adminbar { font-size: 11px; padding: 6px 12px; line-height: 1.5; }
+
+  .weekday { padding: 6px 1px; font-size: 10px; text-align: center; }
+  .grid { flex: 0 0 auto; }                 /* 그리드는 자기 높이만큼만 */
+  .week { min-height: 62px; }
+  .cell {
+    padding: 2px 1px 3px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; align-items: stretch;
+  }
+  .cell.selected { background: #eaf3fe; box-shadow: inset 0 0 0 2px var(--accent); border-radius: 4px; }
+  .daynum { font-size: 10px; padding: 0 0 1px 2px; align-self: flex-start; }
+  .today-num { min-width: 17px; height: 17px; padding: 0 5px; }
+
+  .events { display: none; }       /* 텍스트 목록 숨김 (팝업 소스로만 사용) */
+  .cell-chips { display: flex; }    /* 칸 안 일정 칩 노출 */
 }
