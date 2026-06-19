@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} · calendar.viram.dev</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="nav">
+      <h1>{{ title }}</h1>
+      <div class="nav-buttons">
+        <a class="btn" href="/?year={{ prev_year }}&month={{ prev_month }}" title="이전 달">‹</a>
+        <a class="btn today-btn" href="/" title="오늘">오늘</a>
+        <a class="btn" href="/?year={{ next_year }}&month={{ next_month }}" title="다음 달">›</a>
+      </div>
+    </div>
+    <div class="sources">
+      <span class="chip {{ 'on' if sources_status.google else 'off' }}">Google Calendar</span>
+      <span class="chip {{ 'on' if sources_status.notion else 'off' }}">Notion</span>
+    </div>
+  </header>
+
+  {% if not any_configured %}
+  <div class="banner">
+    아직 연결된 캘린더가 없습니다. <code>.env</code>에 Google / Notion 자격증명을 설정하면 일정이 채워집니다.
+    (설정 방법은 <code>README.md</code> 참고)
+  </div>
+  {% endif %}
+  {% for err in errors %}
+  <div class="banner error">{{ err }}</div>
+  {% endfor %}
+
+  <div class="weekday-row">
+    {% for h in headers %}
+    <div class="weekday {% if loop.index0 == 0 %}sun{% elif loop.index0 == 6 %}sat{% endif %}">{{ h }}</div>
+    {% endfor %}
+  </div>
+
+  <div class="grid">
+    {% for week in grid %}
+    <div class="week">
+      {% for cell in week %}
+      <div class="cell {% if not cell.in_month %}muted{% endif %} {% if cell.is_today %}today{% endif %}">
+        <div class="daynum {% if cell.is_today %}today-num{% endif %}">
+          {% if cell.date.day == 1 %}{{ cell.date.month }}월 {% endif %}{{ cell.date.day }}
+        </div>
+        <div class="events">
+          {% for ev in cell.events %}
+          <a class="event {% if ev.all_day %}all-day{% endif %}"
+             href="{{ ev.url or '#' }}" target="_blank" rel="noopener"
+             title="{{ ev.title }}{% if ev.calendar %} · {{ ev.calendar }}{% endif %}">
+            {% if ev.all_day %}
+              <span class="dot" style="background: {{ ev.color }}"></span>
+              <span class="etitle">{{ ev.title }}</span>
+            {% else %}
+              <span class="bar" style="background: {{ ev.color }}"></span>
+              <span class="etime">{{ ev.time_label() }}</span>
+              <span class="etitle">{{ ev.title }}</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</body>
+</html>
