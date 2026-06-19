@@ -91,7 +91,9 @@ def index():
     events, errors = _fetch_month_events(year, month)
 
     admin = auth.is_admin()
-    events = _apply_visibility(events, admin)
+    preview = request.args.get("preview") == "1"   # 관리자가 외부 화면 미리보기
+    effective_admin = admin and not preview
+    events = _apply_visibility(events, effective_admin)
     grid = calendar_grid.build(year, month, events)
 
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
@@ -117,7 +119,9 @@ def index():
         errors=errors,
         sources_status=sources_status,
         any_configured=any(sources_status.values()),
-        is_admin=admin,
+        is_admin=effective_admin,
+        real_admin=admin,
+        preview=preview,
         admin_email=auth.current_email(),
         admin_enabled=bool(config.ADMIN_EMAILS),
         cat_labels=config.CATEGORY_LABELS,

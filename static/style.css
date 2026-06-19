@@ -46,7 +46,7 @@ body { display: flex; flex-direction: column; }
 .btn:hover { background: #f1f1f0; }
 .today-btn { font-size: 13px; font-weight: 600; }
 
-.sources { display: flex; gap: 6px; }
+.sources { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .chip {
   font-size: 11px; padding: 3px 9px; border-radius: 20px;
   border: 1px solid var(--line);
@@ -54,6 +54,7 @@ body { display: flex; flex-direction: column; }
 .chip.on { color: #1a7f37; border-color: #b7e0c0; background: #f0faf2; }
 .chip.off { color: var(--muted); background: var(--muted-bg); }
 .chip.admin { color: #b4690e; border-color: #f0d39a; background: #fff7e8; }
+.chip.preview { color: #6940a5; border-color: #d9caf0; background: #f5f0fc; }
 .chip.link { color: var(--accent); border-color: #bcdcfa; background: #eef6ff; text-decoration: none; }
 .chip.link:hover { background: #e2eefe; }
 
@@ -68,6 +69,8 @@ body { display: flex; flex-direction: column; }
   background: #fff8e6; border: 1px solid #f3e2b3; font-size: 12.5px;
 }
 .banner.error { background: #fdecec; border-color: #f3c2c2; }
+.banner.preview-banner { background: #f5f0fc; border-color: #d9caf0; color: #5b3a91; }
+.banner.preview-banner a { color: #6940a5; font-weight: 600; }
 .banner code { background: rgba(0,0,0,.05); padding: 1px 5px; border-radius: 4px; }
 
 /* ── Weekday header ── */
@@ -192,12 +195,18 @@ body { display: flex; flex-direction: column; }
 
 /* ── 모바일: 위는 작은 점 달력, 아래는 선택일 일정 리스트 ── */
 @media (max-width: 640px) {
+  html, body { overflow-x: hidden; }
   body { height: auto; min-height: 100%; }
-  .topbar { padding: 10px 12px; position: sticky; top: 0; background: #fff; z-index: 3; }
-  .nav { gap: 10px; }
-  .sources { gap: 4px; }
-  .chip { font-size: 10px; padding: 2px 7px; }
+  .topbar {
+    padding: 9px 12px; position: sticky; top: 0; background: #fff; z-index: 3;
+    flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  .nav { gap: 10px; justify-content: space-between; }
+  .sources { gap: 5px; }
+  .chip { font-size: 10px; padding: 2px 7px; max-width: 100%; }
+  .chip.admin .email { display: none; }          /* 모바일: 긴 이메일 숨김 */
   .adminbar { font-size: 11px; padding: 6px 12px; line-height: 1.5; }
+  .adminbar .ab-hint { display: none; }           /* 모바일: 설명 문구 숨김 */
 
   .weekday { padding: 6px 1px; font-size: 10px; text-align: center; }
   .grid { flex: 0 0 auto; }                 /* 그리드는 자기 높이만큼만 */

@@ -10,27 +10,39 @@
   <header class="topbar">
     <div class="nav">
       <h1>{{ title }}</h1>
+      {% set pv = '&preview=1' if preview else '' %}
       <div class="nav-buttons">
-        <a class="btn" href="/?year={{ prev_year }}&month={{ prev_month }}" title="이전 달">‹</a>
-        <a class="btn today-btn" href="/" title="오늘">오늘</a>
-        <a class="btn" href="/?year={{ next_year }}&month={{ next_month }}" title="다음 달">›</a>
+        <a class="btn" href="/?year={{ prev_year }}&month={{ prev_month }}{{ pv }}" title="이전 달">‹</a>
+        <a class="btn today-btn" href="/{{ '?preview=1' if preview else '' }}" title="오늘">오늘</a>
+        <a class="btn" href="/?year={{ next_year }}&month={{ next_month }}{{ pv }}" title="다음 달">›</a>
       </div>
     </div>
     <div class="sources">
       <span class="chip {{ 'on' if sources_status.google else 'off' }}">Google Calendar</span>
       <span class="chip {{ 'on' if sources_status.notion else 'off' }}">Notion</span>
-      {% if is_admin %}
-        <span class="chip admin">관리자 · {{ admin_email }}</span>
-        <a class="chip link" href="/logout">로그아웃</a>
+      {% if real_admin %}
+        {% if preview %}
+          <span class="chip preview">👁 외부 미리보기</span>
+          <a class="chip link" href="/?year={{ year }}&month={{ month }}">← 관리자로</a>
+        {% else %}
+          <span class="chip admin">관리자<span class="email"> · {{ admin_email }}</span></span>
+          <a class="chip link" href="/?year={{ year }}&month={{ month }}&preview=1">외부 보기</a>
+          <a class="chip link" href="/logout">로그아웃</a>
+        {% endif %}
       {% elif admin_enabled %}
         <a class="chip link" href="/login">관리자 로그인</a>
       {% endif %}
     </div>
   </header>
 
+  {% if preview %}
+  <div class="banner preview-banner">👁 지금은 <b>외부 방문자</b>가 보는 화면입니다.
+    <a href="/?year={{ year }}&month={{ month }}">관리자 화면으로 돌아가기</a></div>
+  {% endif %}
+
   {% if is_admin %}
-  <div class="adminbar">🔧 관리자 모드 — Notion 일정의 버튼을 눌러 카테고리를 바꾸세요:
-    <b>🔒 비공개</b>(외부 숨김) · <b>👤 타인 일정</b>(외부엔 "바쁨"만) · <b>🌐 공개</b>(내용 그대로)</div>
+  <div class="adminbar">🔧 관리자 모드 · <b>🔒 비공개</b> · <b>👤 다른 사람</b> · <b>🌐 공개</b>
+    <span class="ab-hint">— 일정(모바일은 날짜 탭) 옆 버튼으로 공개 범위 변경</span></div>
   {% endif %}
 
   {% if not any_configured %}
