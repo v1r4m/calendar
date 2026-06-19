@@ -19,8 +19,19 @@
     <div class="sources">
       <span class="chip {{ 'on' if sources_status.google else 'off' }}">Google Calendar</span>
       <span class="chip {{ 'on' if sources_status.notion else 'off' }}">Notion</span>
+      {% if is_admin %}
+        <span class="chip admin">관리자 · {{ admin_email }}</span>
+        <a class="chip link" href="/logout">로그아웃</a>
+      {% elif admin_enabled %}
+        <a class="chip link" href="/login">관리자 로그인</a>
+      {% endif %}
     </div>
   </header>
+
+  {% if is_admin %}
+  <div class="adminbar">🔧 관리자 모드 — Notion 일정의 버튼을 눌러 카테고리를 바꾸세요:
+    <b>🔒 비공개</b>(외부 숨김) · <b>👤 타인 일정</b>(외부엔 "바쁨"만) · <b>🌐 공개</b>(내용 그대로)</div>
+  {% endif %}
 
   {% if not any_configured %}
   <div class="banner">
@@ -48,18 +59,26 @@
         </div>
         <div class="events">
           {% for ev in cell.events %}
-          <a class="event {% if ev.all_day %}all-day{% endif %}"
-             href="{{ ev.url or '#' }}" target="_blank" rel="noopener"
-             title="{{ ev.title }}{% if ev.calendar %} · {{ ev.calendar }}{% endif %}">
-            {% if ev.all_day %}
-              <span class="dot" style="background: {{ ev.color }}"></span>
-              <span class="etitle">{{ ev.title }}</span>
-            {% else %}
-              <span class="bar" style="background: {{ ev.color }}"></span>
-              <span class="etime">{{ ev.time_label() }}</span>
-              <span class="etitle">{{ ev.title }}</span>
+          <div class="event-row cat-{{ ev.category }}">
+            <a class="event {% if ev.all_day %}all-day{% endif %}"
+               href="{{ ev.url or '#' }}" target="_blank" rel="noopener"
+               title="{{ ev.title }}{% if ev.calendar %} · {{ ev.calendar }}{% endif %}">
+              {% if ev.all_day %}
+                <span class="dot" style="background: {{ ev.color }}"></span>
+                <span class="etitle">{{ ev.title }}</span>
+              {% else %}
+                <span class="bar" style="background: {{ ev.color }}"></span>
+                <span class="etime">{{ ev.time_label() }}</span>
+                <span class="etitle">{{ ev.title }}</span>
+              {% endif %}
+            </a>
+            {% if is_admin and ev.source == 'notion' %}
+            <button class="cat-btn" data-key="{{ ev.key }}" data-cat="{{ ev.category }}"
+                    title="{{ cat_labels[ev.category] }} — 클릭하면 다음 카테고리로">
+              {{ cat_emoji[ev.category] }}
+            </button>
             {% endif %}
-          </a>
+          </div>
           {% endfor %}
         </div>
       </div>
@@ -67,5 +86,38 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if is_admin %}
+  <script>
+    var ORDER = ["private", "busy", "public"];
+    var EMOJI = {{ cat_emoji | tojson }};
+    var LABELS = {{ cat_labels | tojson }};
+
+    document.querySelectorAll(".cat-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var cur = btn.dataset.cat;
+        var next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+        var body = new URLSearchParams({ key: btn.dataset.key, category: next });
+        btn.disabled = true;
+        fetch("/admin/category", { method: "POST", body: body })
+          .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+          .then(function () {
+            // 같은 key를 가진 모든 버튼/행을 즉시 갱신 (멀티데이 대비)
+            document.querySelectorAll('.cat-btn[data-key="' + CSS.escape(btn.dataset.key) + '"]')
+              .forEach(function (b) {
+                b.dataset.cat = next;
+                b.textContent = EMOJI[next];
+                b.title = LABELS[next] + " — 클릭하면 다음 카테고리로";
+                var row = b.closest(".event-row");
+                row.classList.remove("cat-private", "cat-busy", "cat-public");
+                row.classList.add("cat-" + next);
+                b.disabled = false;
+              });
+          })
+          .catch(function () { btn.disabled = false; alert("변경 실패"); });
+      });
+    });
+  </script>
+  {% endif %}
 </body>
 </html>

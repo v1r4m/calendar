@@ -130,6 +130,7 @@ def fetch(time_min: datetime, time_max: datetime) -> list[Event]:
                         source="google",
                         calendar=meta.get("summary", ""),
                         url=item.get("htmlLink", ""),
+                        id=item.get("id", ""),
                     )
                 )
 

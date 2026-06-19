@@ -53,6 +53,14 @@ body { display: flex; flex-direction: column; }
 }
 .chip.on { color: #1a7f37; border-color: #b7e0c0; background: #f0faf2; }
 .chip.off { color: var(--muted); background: var(--muted-bg); }
+.chip.admin { color: #b4690e; border-color: #f0d39a; background: #fff7e8; }
+.chip.link { color: var(--accent); border-color: #bcdcfa; background: #eef6ff; text-decoration: none; }
+.chip.link:hover { background: #e2eefe; }
+
+.adminbar {
+  padding: 7px 20px; font-size: 12px;
+  background: #fff7e8; color: #8a5a12; border-bottom: 1px solid #f0d39a;
+}
 
 /* ── Banners ── */
 .banner {
@@ -104,6 +112,21 @@ body { display: flex; flex-direction: column; }
 }
 
 .events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.event-row { display: flex; align-items: center; gap: 2px; border-radius: 5px; }
+.event-row .event { flex: 1; min-width: 0; }
+
+/* 관리자 화면: 카테고리별 좌측 보더로 구분 */
+.event-row.cat-private { box-shadow: inset 2px 0 0 #d44c47; opacity: .55; }
+.event-row.cat-private .event { text-decoration: line-through; }
+.event-row.cat-busy { box-shadow: inset 2px 0 0 #9b9a97; }
+.event-row.cat-public { box-shadow: inset 2px 0 0 #448361; }
+
+.cat-btn {
+  flex: 0 0 auto; border: none; background: transparent; cursor: pointer;
+  font-size: 12px; line-height: 1; padding: 2px; border-radius: 4px; opacity: .65;
+}
+.cat-btn:hover { opacity: 1; background: rgba(0,0,0,.06); }
+.cat-btn:disabled { opacity: .3; cursor: default; }
 .event {
   display: flex; align-items: center; gap: 5px;
   padding: 2px 5px; border-radius: 5px;

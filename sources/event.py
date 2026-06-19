@@ -15,6 +15,13 @@ class Event:
     source: str              # "google" | "notion"
     calendar: str = ""       # 캘린더/DB 이름
     url: str = ""            # 클릭 시 원본으로 이동
+    id: str = ""             # 소스 내 고유 id (Notion page id 등)
+    category: str = "public" # "private" | "busy" | "public" (런타임에 채워짐)
+
+    @property
+    def key(self) -> str:
+        """숨김 저장소에서 쓰는 안정적 식별자."""
+        return f"{self.source}:{self.id}"
 
     @property
     def start_date(self) -> date:

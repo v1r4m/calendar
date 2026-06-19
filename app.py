@@ -4,13 +4,24 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytz
-from flask import Flask, render_template, request
+from flask import (
+    Flask,
+    abort,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
+import auth
 import calendar_grid
+import category_store
 import config
 from sources import google_calendar, notion_source
 
 app = Flask(__name__)
+app.secret_key = config.SECRET_KEY
 
 _KO_MONTH = "{year}년 {month}월"
 
@@ -32,6 +43,33 @@ def _fetch_month_events(year: int, month: int):
     return events, errors
 
 
+def _category_of(ev, categories: dict[str, str]) -> str:
+    """이벤트의 공개 카테고리. Google 일정은 항상 공개, Notion은 저장값/기본값."""
+    if ev.source != "notion":
+        return "public"
+    return categories.get(ev.key, config.DEFAULT_NOTION_CATEGORY)
+
+
+def _apply_visibility(events, admin):
+    """관리자=전부(실제 내용)+카테고리, 뷰어=private 제외·busy 마스킹·public 그대로."""
+    categories = category_store.load()
+    out = []
+    for ev in events:
+        cat = _category_of(ev, categories)
+        ev.category = cat
+        if admin:
+            out.append(ev)
+            continue
+        # ── 뷰어(외부): private/busy는 제목·링크 제거하고 라벨만 노출 ──
+        if cat in ("private", "busy"):
+            ev.title = config.PRIVATE_LABEL if cat == "private" else config.BUSY_LABEL
+            ev.url = ""
+            ev.calendar = ""
+            ev.color = config.MASK_COLOR
+        out.append(ev)
+    return out
+
+
 @app.route("/")
 def index():
     tz = pytz.timezone(config.TIMEZONE)
@@ -51,6 +89,9 @@ def index():
         year += 1
 
     events, errors = _fetch_month_events(year, month)
+
+    admin = auth.is_admin()
+    events = _apply_visibility(events, admin)
     grid = calendar_grid.build(year, month, events)
 
     prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
@@ -76,7 +117,65 @@ def index():
         errors=errors,
         sources_status=sources_status,
         any_configured=any(sources_status.values()),
+        is_admin=admin,
+        admin_email=auth.current_email(),
+        admin_enabled=bool(config.ADMIN_EMAILS),
+        cat_labels=config.CATEGORY_LABELS,
+        cat_emoji=config.CATEGORY_EMOJI,
     )
+
+
+# ── 관리자 로그인 (Google 신원 확인) ──────────────────────
+@app.route("/login")
+def login():
+    flow = auth.build_flow(url_for("auth_callback", _external=True))
+    auth_url, state = flow.authorization_url(
+        access_type="online",
+        include_granted_scopes="true",
+        prompt="select_account",
+    )
+    session["oauth_state"] = state
+    return redirect(auth_url)
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    if not config.ADMIN_EMAILS:
+        abort(403, "ADMIN_EMAILS 미설정")
+    flow = auth.build_flow(url_for("auth_callback", _external=True))
+    try:
+        email = auth.email_from_callback(flow, request.url)
+    except Exception as exc:
+        return render_template("message.html", message=f"로그인 실패: {exc}"), 400
+
+    if email in config.ADMIN_EMAILS:
+        session["admin_email"] = email
+        return redirect(url_for("index"))
+    return (
+        render_template(
+            "message.html",
+            message=f"{email} 은(는) 관리자가 아닙니다. (ADMIN_EMAILS에 없음)",
+        ),
+        403,
+    )
+
+
+@app.route("/logout")
+def logout():
+    session.pop("admin_email", None)
+    return redirect(url_for("index"))
+
+
+@app.route("/admin/category", methods=["POST"])
+def admin_category():
+    if not auth.is_admin():
+        abort(403)
+    key = request.form.get("key", "")
+    category = request.form.get("category", "")
+    if not key or category not in config.CATEGORIES:
+        abort(400)
+    category_store.set_category(key, category)
+    return {"key": key, "category": category}
 
 
 @app.route("/healthz")

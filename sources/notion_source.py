@@ -146,6 +146,7 @@ def fetch(time_min: datetime, time_max: datetime) -> list[Event]:
                         source="notion",
                         calendar=db_title,
                         url=page.get("url", ""),
+                        id=page.get("id", ""),
                     )
                 )
 
