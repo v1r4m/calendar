@@ -1,0 +1,16 @@
+# 로컬 도커 실행용. http://localhost:5000
+# (평소 개발은 .venv + flask run 으로 해도 되고, 이건 이미지 동작 확인용)
+services:
+  calendar:
+    build: .
+    image: calendar
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # 시크릿/상태는 호스트 파일을 그대로 사용 (이미지에 안 굽힘)
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json
+      - ./categories.json:/app/categories.json
+    restart: unless-stopped

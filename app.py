@@ -23,6 +23,12 @@ from sources import google_calendar, notion_source
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
+# 리버스 프록시(eta-caddy) 뒤: X-Forwarded-Proto/Host 를 신뢰해야
+# url_for(_external=True) 가 https://calendar.viram.dev/... 로 생성됨 (OAuth 콜백용)
+from werkzeug.middleware.proxy_fix import ProxyFix  # noqa: E402
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 _KO_MONTH = "{year}년 {month}월"
 
 

@@ -1,0 +1,16 @@
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.log
+.env
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+# 시크릿/런타임 상태는 이미지에 굽지 않고 런타임에 바인드마운트로 주입
+credentials.json
+token.json
+categories.json
+hidden.json
